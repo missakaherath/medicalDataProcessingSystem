@@ -1,5 +1,7 @@
 import json
+import hashlib
 
+#parent class for all type of users
 class User():
     username=""
     password=""
@@ -13,12 +15,29 @@ class User():
         self.priviledgelevel=assignPrivilegeLevels(usertype)
     def registerUser():
         pass
+    
+    #writing sickness details to files
     def writeSicknessDetails(self):
         username = input("Enter the name of the patient : ")
         isRecorded = recordSicknessDetails(username)
         while(not isRecorded):
             username = input("Enter the name of the patient : ")
             isRecorded = recordSicknessDetails(username)
+            
+    #reading data from files
+    def readInfo(self, readType):
+        if(readType=="personal details"):
+            username = input("Enter the name of the patient : ")
+            readPersonalInfo(username)
+        elif(readType=="sickness details"):
+            username = input("Enter the name of the patient : ")
+            readSicknessDetails(username)
+        elif(readType=="drug prescriptions"):
+            username = input("Enter the name of the patient : ")
+            readDrugPrescription(username)
+        elif(readType=="lab test prescriptions"):
+            username = input("Enter the name of the patient : ")
+            readLabTestPrescription(username)
         
 class Patient(User):
     pass
@@ -126,10 +145,14 @@ def register(utype):
     print ("Enter your details here")
     
     username = input("Username : ")
-    password = input("Password : ")
+    pwd = input("Password : ")
+    
+    password = hashlib.md5(pwd.encode('UTF-8')).hexdigest()
+    
     usertype = utype
     priviledgelevel=assignPrivilegeLevels(utype)  
-        
+    
+    
     userdetails["username"],userdetails["password"],userdetails["usertype"],userdetails["priviledgelevel"]=username,password,usertype,priviledgelevel
     
     jsonFile = open("users.json", "r+")
@@ -143,7 +166,10 @@ def register(utype):
     
     print (username,"is registered as a",usertype)
 
-def login(username, password):
+#logging users in
+def login(username, pwd):
+    
+    password = hashlib.md5(pwd.encode('UTF-8')).hexdigest()
     
     currentUser=User("","","")
 
@@ -167,7 +193,9 @@ def login(username, password):
             return currentUser
             #print ("current user is : ",currentUser.username)
             #currentUser['username'],currentUser['priviledgelevel']=username,user['priviledgelevel']
+    return(currentUser) #if patient is not in the list
 
+#writing patient information to useerinfo.json
 def writePersonalInfo(username):
     
     jsonFile = open("users.json", "r+")
@@ -184,7 +212,7 @@ def writePersonalInfo(username):
     
     for user in data['users']:
         #print(user['username'])
-        if(user['username']==username and user['priviledgelevel']=="0"):
+        if(user['username']==username and user['priviledgelevel']==0):
             foundUser=True
             print ("Enter your user details : ")
             age = input("Age : ")
@@ -209,6 +237,7 @@ def writePersonalInfo(username):
         print ("User data stored successfully")
         return True
 
+#write sickness details of patients to sicknessdetails.json
 def recordSicknessDetails(username):
     
     sicknessInfo = {
@@ -222,7 +251,7 @@ def recordSicknessDetails(username):
     foundUser=False
     
     for user in data['users']:
-        if(user['username']==username and user['priviledgelevel']=="0"):
+        if(user['username']==username and user['priviledgelevel']==0):
             foundUser=True
             info = input("Enter the details of the sickness : ")
             sicknessInfo['username'],sicknessInfo['info']=username,info
@@ -244,6 +273,7 @@ def recordSicknessDetails(username):
         print ("Sickness info stored successfully")
         return True
             
+#writing prescriptions to drugprescriptions.json
 def writePrescriptions(username):
         prescription = {
         "username" : "",
@@ -256,14 +286,14 @@ def writePrescriptions(username):
         foundUser=False
         
         for user in data['users']:
-            if(user['username']==username and user['priviledgelevel']=="0"):
+            if(user['username']==username and user['priviledgelevel']==0):
                 foundUser=True
                 drugs = input("Enter the list of drugs : ")
                 prescription['username'],prescription['drugs']=username,drugs
                 
                 jsonFile1 = open("drugprescriptions.json", "r+")
                 drugprescrips = json.load(jsonFile1)
-                drugprescrips['sicknessdetails'].append(prescription)
+                drugprescrips['drugprescriptions'].append(prescription)
                 
                 jrecord = json.dumps(drugprescrips)
                 
@@ -279,6 +309,7 @@ def writePrescriptions(username):
             print ("Drug prescription stored successfully")
             return True
 
+#write lab prascriptions to labprescriptions.json
 def writeLabPrescriptions(username):
         labprescription = {
             "username" : "",
@@ -291,7 +322,7 @@ def writeLabPrescriptions(username):
         foundUser=False
         
         for user in data['users']:
-            if(user['username']==username and user['priviledgelevel']=="0"):
+            if(user['username']==username and user['priviledgelevel']==0):
                 foundUser=True
                 result = input("Enter the results of the test : ")
                 labprescription['username'],labprescription['result']=username,result
@@ -314,53 +345,126 @@ def writeLabPrescriptions(username):
             print ("Lab prescription stored successfully")
             return True
 
-              
+#read personal information of patients
+def readPersonalInfo(username):
+    jsonFile = open("userinfo.json", "r+")
+    personaldata = json.load(jsonFile)
+    
+    for user in personaldata['users']:
+        if(user['username']==username):
+            print ('\n'+"Username :",user['username']+'\n'+
+                   "Age :",user['age']+'\n'+
+                   "NIC :",user['nic']+'\n'+
+                   "Contact Number :",user['tele']+'\n')
+            break
+        
+#reading sickness details
+def readSicknessDetails(username):
+    jsonFile = open("sicknessdetails.json", "r+")
+    sicknessdata = json.load(jsonFile)
+    
+    for record in sicknessdata['sicknessdetails']:
+        if(record['username']==username):
+            print('\n'+"Username :",record['username']+'\n'+
+                  "Sickness Details : "+record['info'])
+            break
+
+#read drug prescriptions
+def readDrugPrescription(username):
+    jsonFile = open("drugprescriptions.json", "r+")
+    drugprescription = json.load(jsonFile)
+    
+    for prescription in drugprescription['drugprescriptions']:
+        if(prescription['username']==username):
+            print ('\n'+"Username :",username+'\n'+
+                   "Drugs :",prescription['drugs']+'\n')
+            break
+
+#reading lab test prescriptions
+def readLabTestPrescription(username):
+    jsonFile = open("labprescriptions.json", "r+")
+    labprescription = json.load(jsonFile)
+    
+    for record in labprescription['labprescriptions']:
+        if(record['username']==username):
+            print('\n'+"Username :",record['username']+'\n'+
+                  "Lab test result : "+record['result'])
+            break
+
 print ("Type your username and password to log in to the system")
 
 username = input("Username : ")
 password = input("Password : ")
 
 currentUser = login(username,password)
-
-#print(currentUser.username, currentUser.password, currentUser.usertype, currentUser.priviledgelevel)
-
-if(currentUser.usertype!="patient"):
-    operation=input("Type 'Register' to register a new user, 'Write' to write records or 'Read' to read records : ")
+if(currentUser.username==""): #if the user doesn't exist
+    print("Invalid username or password")
 else:
-    operation=input("Type 'Read' to read records : ")
-
-
-if(operation=='Register'):
-    currentUser.registerUser()
-elif(operation=='Write'):
-    print ("Input the number relevant number : "+"\n"+"1 - personal details"
-           +"\n"+ "2 - sickness details" + "\n"+ "3 - drug prescriptions"
-           + "\n" + "4 - lab test prescriptions")
-    number = input("Enter your input : ")
-    if(number=="1"):
-        if(currentUser.priviledgelevel==1):
-            currentUser.writeUserDetails()
-        else:
-            print("Sorry, only nurses can insert personal details of patients")
-    elif(number=="2"):
-        if(currentUser.priviledgelevel==1 or currentUser.priviledgelevel==3):
-            currentUser.writeSicknessDetails()
-        else:
-            print("Sorry, only doctors and nurses can insert sickness details of patients")
-    elif(number=="3"):
-        if(currentUser.priviledgelevel==3):
-            currentUser.writeDrugPrescriptions()
-        else:
-            print("Sorry, only doctors can write drug prescritions for patients")
-    elif(number=="4"):
-        if(currentUser.priviledgelevel==2):
-            currentUser.writeLabTestPrescription()
-        else:
-            print("Sorry, only lab assistants can write lab test prescritions")
-    else:
-        print ("Invalid input")
-elif(operation=='Read'):
-    pass
-
+    if(currentUser.usertype!="patient"):
+        operation=input("Type 'Register' to register a new user, 'Write' to write records or 'Read' to read records : ")
+    else: 
+        operation=input("Type 'Read' to read records : ")
 
     
+    if(operation=='Register'):
+        currentUser.registerUser()
+    elif(operation=='Write'):
+        print ("Input the number relevant number : "+"\n"+"1 - personal details"
+               +"\n"+ "2 - sickness details" + "\n"+ "3 - drug prescriptions"
+               + "\n" + "4 - lab test prescriptions")
+        number = input("Enter your input : ")
+        if(number=="1"):
+            if(currentUser.priviledgelevel==1):
+                currentUser.writeUserDetails()
+            else:
+                print("Sorry, only nurses can insert personal details of patients")
+        elif(number=="2"):
+            if(currentUser.priviledgelevel==1 or currentUser.priviledgelevel==3):
+                currentUser.writeSicknessDetails()
+            else:
+                print("Sorry, only doctors and nurses can insert sickness details of patients")
+        elif(number=="3"):
+            if(currentUser.priviledgelevel==3):
+                currentUser.writeDrugPrescriptions()
+            else:
+                print("Sorry, only doctors can write drug prescritions for patients")
+        elif(number=="4"):
+            if(currentUser.priviledgelevel==2):
+                currentUser.writeLabTestPrescription()
+            else:
+                print("Sorry, only lab assistants can write lab test prescritions")
+        else:
+            print ("Invalid input")
+    elif(operation=='Read'):
+        
+        print ("Input the number relevant number : "+"\n"+"1 - personal details"
+               +"\n"+ "2 - sickness details" + "\n"+ "3 - drug prescriptions"
+               + "\n" + "4 - lab test prescriptions")
+        
+        number = input("Enter your input : ")
+        
+        if(number=="1"):
+            if(currentUser.priviledgelevel==0 or currentUser.priviledgelevel==1):
+                currentUser.readInfo("personal details")
+            else:
+                print ("Sorry, only patients and nurses can read the personal details of patients")
+    
+        elif(number=="2"):
+            currentUser.readInfo("sickness details")
+            
+        elif(number=="3"):
+            if(currentUser.priviledgelevel!=2 and currentUser.priviledgelevel!=4):
+                currentUser.readInfo("drug prescriptions")
+            else:
+                print("Sorry only doctors, nurses and patients can read drug prescriptions")
+                
+        elif(number=="4"):
+            if(currentUser.priviledgelevel!=1):
+                currentUser.readInfo("lab test prescriptions")
+            else:
+                print ("Sorry, only lab assistants, doctors, patients can read lab test prescriptions")
+        
+        else:
+            print("Invalid Input")
+    
+        
